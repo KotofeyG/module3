@@ -12,9 +12,8 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class GiftCertificateAttributeDto {
-    private String tagName;
-    private String searchPart;
-    private String orderSort;
-    private List<String> sortingFields;
+public class UserDto {
+    private Long id;
+    private String name;
+    private List<OrderDto> orderDtoList;
 }

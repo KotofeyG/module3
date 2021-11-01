@@ -1,6 +1,6 @@
 package com.epam.esm.gift_system.service.validator;
 
-import com.epam.esm.gift_system.repository.model.EntityField;
+import com.epam.esm.gift_system.repository.model.GiftCertificateField;
 import com.epam.esm.gift_system.service.dto.GiftCertificateAttributeDto;
 import com.epam.esm.gift_system.service.dto.TagDto;
 import org.springframework.stereotype.Component;
@@ -54,9 +54,11 @@ public class EntityValidator {
     }
 
     public boolean isDurationValid(int duration, ValidationType type) {
-        return type == INSERT
-                ? duration >= MIN_EXPIRATION_PERIOD & duration <= MAX_EXPIRATION_PERIOD
-                : duration == ZERO || (duration >= MIN_EXPIRATION_PERIOD & duration <= MAX_EXPIRATION_PERIOD);
+        return type == INSERT ? isDurationRangeValid(duration) : duration == ZERO || isDurationRangeValid(duration);
+    }
+
+    private boolean isDurationRangeValid(int duration) {
+        return duration >= MIN_EXPIRATION_PERIOD & duration <= MAX_EXPIRATION_PERIOD;
     }
 
     public boolean isTagListValid(List<TagDto> tags, ValidationType type) {
@@ -76,7 +78,7 @@ public class EntityValidator {
         List<String> sortingFields = attributeDto.getSortingFields();
 
         return isNameValid(tagName, UPDATE) && isDescriptionValid(searchPart, UPDATE)
-                && (Objects.isNull(sortingFields) || EntityField.getNameList().containsAll(sortingFields))
+                && (Objects.isNull(sortingFields) || GiftCertificateField.getNameList().containsAll(sortingFields))
                 && (Objects.isNull(orderSort) || AVAILABLE_SORT_ORDERS.contains(orderSort.toLowerCase()));
     }
 }

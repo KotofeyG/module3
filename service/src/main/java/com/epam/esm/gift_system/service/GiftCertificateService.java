@@ -5,15 +5,6 @@ import com.epam.esm.gift_system.service.dto.GiftCertificateDto;
 
 import java.util.List;
 
-public interface GiftCertificateService {
-
-    GiftCertificateDto create(GiftCertificateDto certificateDto);
-
-    GiftCertificateDto update(Long id, GiftCertificateDto certificateDto);
-
-    GiftCertificateDto findById(Long id);
-
+public interface GiftCertificateService extends BaseService<GiftCertificateDto> {
     List<GiftCertificateDto> findByAttributes(GiftCertificateAttributeDto attributeDto);
-
-    void delete(Long id);
 }

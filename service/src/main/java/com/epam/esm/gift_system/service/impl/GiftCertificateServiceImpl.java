@@ -5,11 +5,8 @@ import com.epam.esm.gift_system.repository.dao.TagDao;
 import com.epam.esm.gift_system.repository.model.GiftCertificate;
 import com.epam.esm.gift_system.repository.model.GiftCertificateAttribute;
 import com.epam.esm.gift_system.repository.model.Tag;
+import com.epam.esm.gift_system.service.ConverterService;
 import com.epam.esm.gift_system.service.GiftCertificateService;
-import com.epam.esm.gift_system.service.converter.DtoToGiftCertificateAttributeConverter;
-import com.epam.esm.gift_system.service.converter.DtoToGiftCertificateConverter;
-import com.epam.esm.gift_system.service.converter.DtoToTagConverter;
-import com.epam.esm.gift_system.service.converter.GiftCertificateToDtoConverter;
 import com.epam.esm.gift_system.service.dto.GiftCertificateAttributeDto;
 import com.epam.esm.gift_system.service.dto.GiftCertificateDto;
 import com.epam.esm.gift_system.service.dto.TagDto;
@@ -21,10 +18,20 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.epam.esm.gift_system.service.exception.ErrorCode.*;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_DESCRIPTION;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_DURATION;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_NAME;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_PRICE;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.INVALID_ATTRIBUTE_LIST;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.INVALID_NAME;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_ENTITY;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NULLABLE_OBJECT;
 import static com.epam.esm.gift_system.service.validator.EntityValidator.ValidationType.INSERT;
 import static com.epam.esm.gift_system.service.validator.EntityValidator.ValidationType.UPDATE;
 
@@ -33,37 +40,31 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
     private final EntityValidator validator;
     private final TagDao tagDao;
     private final GiftCertificateDao certificateDao;
-    private final DtoToTagConverter toTagConverter;
-    private final DtoToGiftCertificateConverter toCertificateConverter;
-    private final GiftCertificateToDtoConverter toCertificateDtoConverter;
-    private final DtoToGiftCertificateAttributeConverter toCertificateAttributeConverter;
+    private final ConverterService converter;
 
     @Autowired
     public GiftCertificateServiceImpl(EntityValidator validator, TagDao tagDao, GiftCertificateDao certificateDao
-            , DtoToTagConverter toTagConverter, DtoToGiftCertificateConverter toCertificateConverter
-            , GiftCertificateToDtoConverter toCertificateDtoConverter, DtoToGiftCertificateAttributeConverter toCertificateAttributeConverter) {
+            , ConverterService converter) {
         this.validator = validator;
         this.tagDao = tagDao;
         this.certificateDao = certificateDao;
-        this.toTagConverter = toTagConverter;
-        this.toCertificateConverter = toCertificateConverter;
-        this.toCertificateDtoConverter = toCertificateDtoConverter;
-        this.toCertificateAttributeConverter = toCertificateAttributeConverter;
+        this.converter = converter;
     }
 
     @Override
     @Transactional
     public GiftCertificateDto create(GiftCertificateDto certificateDto) {
         checkCertificateValidation(certificateDto, INSERT);
-        GiftCertificate certificate = toCertificateConverter.convert(certificateDto);
-        Set<Tag> tagSet = findOrCreateTags(certificate.getTags());
-        certificate.setTags(tagSet);
+        GiftCertificate certificate = converter.convertDtoIntoEntity(certificateDto);
+        setTagListInCertificate(certificate);
         certificateDao.create(certificate);
-        return toCertificateDtoConverter.convert(certificate);
+        return converter.convertEntityIntoDto(certificate);
     }
 
-    private Set<Tag> findOrCreateTags(Set<Tag> tagSet) {
-        return tagSet.stream().map(tagDao::findOrCreateTag).collect(Collectors.toCollection(LinkedHashSet::new));
+    private void setTagListInCertificate(GiftCertificate certificate) {
+        Set<Tag> tagList = certificate.getTagList();
+        tagList = tagList.stream().map(tagDao::findOrCreateTag).collect(Collectors.toCollection(LinkedHashSet::new));
+        certificate.setTagList(tagList);
     }
 
     @Override
@@ -72,9 +73,9 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
         checkCertificateValidation(certificateDto, UPDATE);
         GiftCertificate persistedCertificate = findCertificateById(id);
         setUpdatedFields(persistedCertificate, certificateDto);
-        setUpdatedTags(persistedCertificate, certificateDto.getTags());
+        setUpdatedTagList(persistedCertificate, certificateDto.getTagDtoList());
         certificateDao.update(persistedCertificate);
-        return toCertificateDtoConverter.convert(persistedCertificate);
+        return converter.convertEntityIntoDto(persistedCertificate);
     }
 
     private void checkCertificateValidation(GiftCertificateDto certificateDto, EntityValidator.ValidationType type) {
@@ -93,7 +94,7 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
         if (!validator.isDurationValid(certificateDto.getDuration(), type)) {
             throw new GiftSystemException(CERTIFICATE_INVALID_DURATION);
         }
-        if (!validator.isTagListValid(certificateDto.getTags(), type)) {
+        if (!validator.isTagListValid(certificateDto.getTagDtoList(), type)) {
             throw new GiftSystemException(INVALID_NAME);
         }
     }
@@ -118,19 +119,20 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
         }
     }
 
-    private void setUpdatedTags(GiftCertificate persistedCertificate, List<TagDto> tagDtoList) {
-        if (!CollectionUtils.isEmpty(tagDtoList)) {
-            Set<Tag> updatedTagSet = tagDtoList.stream()
-                    .map(toTagConverter::convert)
-                    .map(tagDao::findOrCreateTag)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-            persistedCertificate.setTags(updatedTagSet);
+    private void setUpdatedTagList(GiftCertificate persistedCertificate, List<TagDto> tagDtoList) {
+        if (CollectionUtils.isEmpty(tagDtoList)) {
+            return;
         }
+        Set<Tag> updatedTagSet = tagDtoList.stream()
+                .map(converter::convertDtoIntoEntity)
+                .map(tagDao::findOrCreateTag)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        persistedCertificate.setTagList(updatedTagSet);
     }
 
     @Override
     public GiftCertificateDto findById(Long id) {
-        return toCertificateDtoConverter.convert(findCertificateById(id));
+        return converter.convertEntityIntoDto(findCertificateById(id));
     }
 
     private GiftCertificate findCertificateById(Long id) {
@@ -138,11 +140,16 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
     }
 
     @Override
+    public List<GiftCertificateDto> findAll() {
+        throw new UnsupportedOperationException("findAll method isn't implemented in GiftCertificateServiceImpl class");
+    }
+
+    @Override
     public List<GiftCertificateDto> findByAttributes(GiftCertificateAttributeDto attributeDto) {
         if (validator.isAttributeListValid(attributeDto)) {
-            GiftCertificateAttribute attribute = toCertificateAttributeConverter.convert(attributeDto);
+            GiftCertificateAttribute attribute = converter.convertDtoIntoEntity(attributeDto);
             List<GiftCertificate> certificateList = certificateDao.findByAttributes(attribute);
-            return certificateList.stream().map(toCertificateDtoConverter::convert).toList();
+            return certificateList.stream().map(converter::convertEntityIntoDto).toList();
         }
         throw new GiftSystemException(INVALID_ATTRIBUTE_LIST);
     }

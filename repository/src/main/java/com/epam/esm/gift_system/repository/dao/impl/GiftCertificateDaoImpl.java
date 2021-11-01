@@ -9,12 +9,17 @@ import org.springframework.stereotype.Repository;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class GiftCertificateDaoImpl implements GiftCertificateDao {
     @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
+
+    public GiftCertificateDaoImpl(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Override
     public GiftCertificate create(GiftCertificate certificate) {
@@ -33,9 +38,15 @@ public class GiftCertificateDaoImpl implements GiftCertificateDao {
     }
 
     @Override
+    public List<GiftCertificate> findAll() {
+        throw new UnsupportedOperationException("findAll method isn't implemented in GiftCertificateDaoImpl class");
+    }
+
+    @Override
     public List<GiftCertificate> findByAttributes(GiftCertificateAttribute attribute) {
+        SqlQueryBuilder sqlQueryBuilder = new SqlQueryBuilder(entityManager.getCriteriaBuilder());
         TypedQuery<GiftCertificate> typedQuery = entityManager
-                .createQuery(SqlQueryBuilder.buildCertificateQueryForSearchAndSort(attribute, entityManager));
+                .createQuery(sqlQueryBuilder.buildCertificateQueryForSearchAndSort(attribute));
         return typedQuery.getResultList();
     }
 

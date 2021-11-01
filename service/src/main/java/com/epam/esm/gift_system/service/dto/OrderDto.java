@@ -6,15 +6,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class GiftCertificateAttributeDto {
-    private String tagName;
-    private String searchPart;
-    private String orderSort;
-    private List<String> sortingFields;
+public class OrderDto {
+    private Long id;
+    private LocalDateTime orderDate;
+    private BigDecimal cost;
+    private Long userId;
+    private List<GiftCertificateDto> certificateList;
 }

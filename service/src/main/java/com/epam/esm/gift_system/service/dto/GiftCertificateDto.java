@@ -1,6 +1,10 @@
 package com.epam.esm.gift_system.service.dto;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,5 +22,5 @@ public class GiftCertificateDto {
     private int duration;
     private LocalDateTime createDate;
     private LocalDateTime lastUpdateDate;
-    private List<TagDto> tags;
+    private List<TagDto> tagDtoList;
 }

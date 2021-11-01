@@ -10,6 +10,7 @@ public class ErrorCode {
     public static final int INVALID_NAME = 40006;
     public static final int NULLABLE_OBJECT = 40007;
     public static final int INVALID_ATTRIBUTE_LIST = 40008;
+    public static final int USER_INVALID_NAME = 40009;
 
     public static final int NON_EXISTENT_ENTITY = 40401;
 

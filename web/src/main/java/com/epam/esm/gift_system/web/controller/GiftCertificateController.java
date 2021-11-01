@@ -42,6 +42,7 @@ public class GiftCertificateController {
     }
 
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteById(@PathVariable Long id) {
         certificateService.delete(id);
     }

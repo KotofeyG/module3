@@ -17,51 +17,39 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.PrePersist;
-import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "gift_certificates")
-public class GiftCertificate {
+@Table(name = "orders")
+public class Order {
     @Id
     @Column(name = "id", unique = true, nullable = false, updatable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "name", nullable = false)
-    private String name;
-    @Column(name = "description", nullable = false)
-    private String description;
-    @Column(name = "price", nullable = false)
-    private BigDecimal price;
-    @Column(name = "duration", nullable = false)
-    private int duration;
-    @Column(name = "create_date", nullable = false, updatable = false)
-    private LocalDateTime createDate;
-    @Column(name = "last_update_date", nullable = false)
-    private LocalDateTime lastUpdateDate;
+    @Column(name = "order_date", nullable = false, updatable = false)
+    private LocalDateTime orderDate;
+    @Column(name = "order_cost", nullable = false, updatable = false)
+    private BigDecimal cost;
+    @Column(name = "user_id", nullable = false, updatable = false)
+    private Long userId;
     @ManyToMany(fetch = FetchType.EAGER
             , cascade = {CascadeType.MERGE, CascadeType.DETACH, CascadeType.PERSIST, CascadeType.REFRESH})
-    @JoinTable(name = "tags_certificates"
-            , joinColumns = @JoinColumn(name = "gift_certificate_id", referencedColumnName = "id")
-            , inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName = "id"))
-    private Set<Tag> tagList = new LinkedHashSet<>();
+    @JoinTable(name = "orders_certificates"
+            , joinColumns = @JoinColumn(name = "order_id", referencedColumnName = "id")
+            , inverseJoinColumns = @JoinColumn(name = "gift_certificate_id", referencedColumnName = "id"))
+    private List<GiftCertificate> certificateList = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {
-        createDate = LocalDateTime.now();
-        lastUpdateDate = createDate;
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        lastUpdateDate = LocalDateTime.now();
+        orderDate = LocalDateTime.now();
+        cost = certificateList.stream().map(GiftCertificate::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

@@ -28,7 +28,9 @@ public class DtoToGiftCertificateConverter implements Converter<GiftCertificateD
                 .duration(source.getDuration())
                 .createDate(source.getCreateDate())
                 .lastUpdateDate(source.getLastUpdateDate())
-                .tags(source.getTags().stream().map(dtoToTagConverter::convert).collect(Collectors.toCollection(LinkedHashSet::new)))
+                .tagList(source.getTagDtoList().stream()
+                        .map(dtoToTagConverter::convert)
+                        .collect(Collectors.toCollection(LinkedHashSet::new)))
                 .build();
     }
 }
