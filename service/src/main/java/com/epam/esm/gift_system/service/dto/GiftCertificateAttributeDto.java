@@ -13,8 +13,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class GiftCertificateAttributeDto {
-    private String tagName;
+    private List<String> tagNameList;
     private String searchPart;
     private String orderSort;
-    private List<String> sortingFields;
+    private List<String> sortingFieldList;
 }

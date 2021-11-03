@@ -8,8 +8,8 @@ import java.util.List;
 @Data
 @Builder
 public class GiftCertificateAttribute {
-    private String tagName;
+    private List<String> tagNameList;
     private String searchPart;
     private String orderSort;
-    private List<String> sortingFields;
+    private List<String> sortingFieldList;
 }

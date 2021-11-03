@@ -2,9 +2,10 @@ package com.epam.esm.gift_system.service.impl;
 
 import com.epam.esm.gift_system.repository.dao.UserDao;
 import com.epam.esm.gift_system.repository.model.User;
-import com.epam.esm.gift_system.service.ConverterService;
+import com.epam.esm.gift_system.service.DtoConverterService;
+import com.epam.esm.gift_system.service.EntityConverterService;
 import com.epam.esm.gift_system.service.UserService;
-import com.epam.esm.gift_system.service.dto.OrderDto;
+import com.epam.esm.gift_system.service.dto.ResponseOrderDto;
 import com.epam.esm.gift_system.service.dto.UserDto;
 import com.epam.esm.gift_system.service.exception.GiftSystemException;
 import com.epam.esm.gift_system.service.validator.EntityValidator;
@@ -13,30 +14,34 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.epam.esm.gift_system.service.exception.ErrorCode.*;
-import static com.epam.esm.gift_system.service.validator.EntityValidator.ValidationType.INSERT;
+import static com.epam.esm.gift_system.service.validator.EntityValidator.ValidationType.STRONG;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserDao userDao;
     private final EntityValidator validator;
-    private final ConverterService converter;
+    private final DtoConverterService dtoConverter;
+    private final EntityConverterService entityConverter;
 
     @Autowired
-    public UserServiceImpl(UserDao userDao, EntityValidator validator, ConverterService converter) {
+    public UserServiceImpl(UserDao userDao, EntityValidator validator, DtoConverterService dtoConverter
+            , EntityConverterService entityConverter) {
         this.userDao = userDao;
         this.validator = validator;
-        this.converter = converter;
+        this.dtoConverter = dtoConverter;
+        this.entityConverter = entityConverter;
     }
 
     @Override
     @Transactional
-    public UserDto create(UserDto userDto) {                    //todo
-        if (validator.isNameValid(userDto.getName(), INSERT)) {
+    public UserDto create(UserDto userDto) {
+        if (validator.isNameValid(userDto.getName(), STRONG)) {
             if (userDao.isUserNameFree(userDto.getName())) {
-                User user = converter.convertDtoIntoEntity(userDto);
-                return converter.convertEntityIntoDto(userDao.create(user));
+                User user = entityConverter.convertDtoIntoEntity(userDto);
+                return dtoConverter.convertEntityIntoDto(userDao.create(user));
             }
             throw new GiftSystemException(DUPLICATE_NAME);
         }
@@ -50,39 +55,37 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto findById(Long id) {
-        return converter.convertEntityIntoDto(findUserById(id));
+        return dtoConverter.convertEntityIntoDto(findUserById(id));
     }
 
-    private User findUserById(Long id) {
+    @Override
+    public User findUserById(Long id) {
         return userDao.findById(id).orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY));
     }
 
     @Override
-    public UserDto findByName(String name) {
-        if (!validator.isNameValid(name, INSERT)) {
+    public List<UserDto> findAllByNameList(List<String> nameList) {
+        checkNameList(nameList);
+        return Objects.nonNull(nameList)
+                ? userDao.findAllByNameList(nameList).stream().map(dtoConverter::convertEntityIntoDto).toList()
+                :findAll();
+    }
+
+    private void checkNameList(List<String> nameList) {
+        if (Objects.nonNull(nameList) && !nameList.stream().allMatch(name -> validator.isNameValid(name, STRONG))) {
             throw new GiftSystemException(USER_INVALID_NAME);
         }
-        return userDao.findByName(name)
-                .map(converter::convertEntityIntoDto)
-                .orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY));
-    }
-
-    @Override
-    public OrderDto findUserOrderById(Long userId, Long orderId) {
-        return userDao.findUserOrderById(userId, orderId)
-                .map(converter::convertEntityIntoDto)
-                .orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY));
-    }
-
-    @Override
-    public List<OrderDto> findUserOrderList(Long id) {
-        User user = findUserById(id);
-        return user.getOrderList().stream().map(converter::convertEntityIntoDto).toList();
     }
 
     @Override
     public List<UserDto> findAll() {
-        return userDao.findAll().stream().map(converter::convertEntityIntoDto).toList();
+        return userDao.findAll().stream().map(dtoConverter::convertEntityIntoDto).toList();
+    }
+
+    @Override
+    public List<ResponseOrderDto> findUserOrderList(Long id) {
+        User user = findUserById(id);
+        return user.getOrderList().stream().map(dtoConverter::convertEntityIntoDto).toList();
     }
 
     @Override

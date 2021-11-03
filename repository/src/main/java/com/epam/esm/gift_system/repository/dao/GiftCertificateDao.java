@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface GiftCertificateDao extends BaseDao<GiftCertificate> {
     List<GiftCertificate> findByAttributes(GiftCertificateAttribute attribute);
+
+    boolean isGiftCertificateUsedInOrders(Long id);
 }

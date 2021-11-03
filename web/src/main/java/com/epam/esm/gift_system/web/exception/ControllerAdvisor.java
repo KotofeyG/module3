@@ -1,6 +1,6 @@
 package com.epam.esm.gift_system.web.exception;
 
-import com.epam.esm.gift_system.service.exception.*;
+import com.epam.esm.gift_system.service.exception.GiftSystemException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.http.HttpStatus;
@@ -13,14 +13,17 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static com.epam.esm.gift_system.service.exception.ErrorCode.*;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.BAD_REQUEST;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.UNREADABLE_MESSAGE;
 
 @RestControllerAdvice
 public class ControllerAdvisor {
-    private static final int REST = 100;
+    private static final int ONE_HUNDRED = 100;
+    private static final Object[] EMPTY_ARGS = null;
     private static final String INITIAL_ERROR_MSG = "error_msg.";
     private static final String ERROR_MESSAGE = "errorMessage";
     private static final String ERROR_CODE = "errorCode";
+
     private final ResourceBundleMessageSource messages;
 
     @Autowired
@@ -46,7 +49,7 @@ public class ControllerAdvisor {
 
     private Map<String, Object> createResponse(int errorCode, Locale locale) {
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put(ERROR_MESSAGE, messages.getMessage(getMessageByCode(errorCode), null, locale));
+        response.put(ERROR_MESSAGE, messages.getMessage(getMessageByCode(errorCode), EMPTY_ARGS, locale));
         response.put(ERROR_CODE, errorCode);
         return response;
     }
@@ -56,7 +59,7 @@ public class ControllerAdvisor {
     }
 
     private HttpStatus getHttpStatusByCode(int errorCode) {
-        int statusCode = errorCode / REST;
+        int statusCode = errorCode / ONE_HUNDRED;
         return HttpStatus.valueOf(statusCode);
     }
 }

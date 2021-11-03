@@ -1,11 +1,19 @@
 package com.epam.esm.gift_system.web.controller;
 
 import com.epam.esm.gift_system.service.UserService;
-import com.epam.esm.gift_system.service.dto.OrderDto;
+import com.epam.esm.gift_system.service.dto.ResponseOrderDto;
 import com.epam.esm.gift_system.service.dto.UserDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -30,24 +38,19 @@ public class UserController {
         return userService.findById(id);
     }
 
-    @GetMapping("/name")                                            //todo
-    public UserDto findByName(@RequestParam(value = "name") String name) {
-        return userService.findByName(name);
-    }
-
-    @GetMapping("/{userId}/orders/{orderId}")
-    public OrderDto findUserOrderList(@PathVariable Long userId, @PathVariable Long orderId) {
-        return userService.findUserOrderById(userId, orderId);
-    }
-
-    @GetMapping("/{id}/orders")
-    public List<OrderDto> findUserOrderList(@PathVariable Long id) {
-        return userService.findUserOrderList(id);
+    @GetMapping("/search")
+    public List<UserDto> findAllByNameList(@RequestParam(required = false) List<String> nameList) {
+        return userService.findAllByNameList(nameList);
     }
 
     @GetMapping
     public List<UserDto> findAll() {
         return userService.findAll();
+    }
+
+    @GetMapping("/{id}/orders")
+    public List<ResponseOrderDto> findUserOrderList(@PathVariable Long id) {
+        return userService.findUserOrderList(id);
     }
 
     @DeleteMapping("/{id}")

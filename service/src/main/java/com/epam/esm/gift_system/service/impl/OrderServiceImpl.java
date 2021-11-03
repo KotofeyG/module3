@@ -1,71 +1,77 @@
 package com.epam.esm.gift_system.service.impl;
 
-import com.epam.esm.gift_system.repository.dao.GiftCertificateDao;
 import com.epam.esm.gift_system.repository.dao.OrderDao;
-import com.epam.esm.gift_system.repository.dao.UserDao;
 import com.epam.esm.gift_system.repository.model.GiftCertificate;
 import com.epam.esm.gift_system.repository.model.Order;
-import com.epam.esm.gift_system.service.ConverterService;
+import com.epam.esm.gift_system.repository.model.User;
+import com.epam.esm.gift_system.service.DtoConverterService;
+import com.epam.esm.gift_system.service.GiftCertificateService;
 import com.epam.esm.gift_system.service.OrderService;
-import com.epam.esm.gift_system.service.dto.GiftCertificateDto;
-import com.epam.esm.gift_system.service.dto.OrderDto;
+import com.epam.esm.gift_system.service.UserService;
+import com.epam.esm.gift_system.service.dto.ResponseOrderDto;
+import com.epam.esm.gift_system.service.dto.RequestOrderDto;
 import com.epam.esm.gift_system.service.exception.GiftSystemException;
+import com.epam.esm.gift_system.service.validator.EntityValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.epam.esm.gift_system.service.exception.ErrorCode.*;
 
 @Service
 public class OrderServiceImpl implements OrderService {
     private final OrderDao orderDao;
-    private final UserDao userDao;
-    private final GiftCertificateDao certificateDao;
-    private final ConverterService converter;
+    private final GiftCertificateService certificateService;
+    private final UserService userService;
+    private final EntityValidator validator;
+    private final DtoConverterService dtoConverter;
 
     @Autowired
-    public OrderServiceImpl(OrderDao orderDao, UserDao userDao, GiftCertificateDao certificateDao, ConverterService converter) {
+    public OrderServiceImpl(OrderDao orderDao, GiftCertificateService certificateService, UserService userService
+            , EntityValidator validator, DtoConverterService dtoConverter) {
         this.orderDao = orderDao;
-        this.userDao = userDao;
-        this.certificateDao = certificateDao;
-        this.converter = converter;
+        this.certificateService = certificateService;
+        this.userService = userService;
+        this.validator = validator;
+        this.dtoConverter = dtoConverter;
     }
 
     @Override
     @Transactional
-    public OrderDto create(OrderDto orderDto) {                         //todo. Break up
+    public ResponseOrderDto create(RequestOrderDto orderDto) {
+        checkRequestOrderDto(orderDto);
+        User user = userService.findUserById(orderDto.getUserId());
+        List<GiftCertificate> certificateList = orderDto.getCertificateIdList().stream()
+                .map(certificateService::findCertificateById).toList();
+        Order order = Order.builder().user(user).certificateList(certificateList).build();
+        return dtoConverter.convertEntityIntoDto(orderDao.create(order));
+    }
+
+    private void checkRequestOrderDto(RequestOrderDto orderDto) {
         if (Objects.isNull(orderDto)) {
             throw new GiftSystemException(NULLABLE_OBJECT);
         }
-        if (Objects.isNull(orderDto.getUserId()) || userDao.findById(orderDto.getUserId()).isEmpty()) {
+        if (!validator.isRequestOrderDataValid(orderDto)) {
             throw new GiftSystemException(NON_EXISTENT_ENTITY);
         }
-        List<GiftCertificateDto> certificateDtoList = Optional.ofNullable(orderDto.getCertificateList())
-                .orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY));
-        List<GiftCertificate> certificateList = certificateDtoList.stream()
-                .map(certificateDto -> certificateDao.findById(Optional.ofNullable(certificateDto.getId())
-                        .orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY)))
-                    .orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY)))
-                .toList();
-        orderDto.setCertificateList(Collections.EMPTY_LIST);
-        Order order = converter.convertDtoIntoEntity(orderDto);
-        order.setCertificateList(certificateList);
-        return converter.convertEntityIntoDto(orderDao.create(order));
     }
 
     @Override
-    public OrderDto update(Long id, OrderDto orderDto) {
+    public ResponseOrderDto create(ResponseOrderDto orderDto) {
+        throw new UnsupportedOperationException("create method with OrderDto parameter isn't implemented in OrderServiceImpl class");
+    }
+
+    @Override
+    public ResponseOrderDto update(Long id, ResponseOrderDto orderDto) {
         throw new UnsupportedOperationException("update method isn't implemented in OrderServiceImpl class");
     }
 
     @Override
-    public OrderDto findById(Long id) {
-        return converter.convertEntityIntoDto(findOrderById(id));
+    public ResponseOrderDto findById(Long id) {
+        return dtoConverter.convertEntityIntoDto(findOrderById(id));
     }
 
     private Order findOrderById(Long id) {
@@ -73,8 +79,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderDto> findAll() {
-        return orderDao.findAll().stream().map(converter::convertEntityIntoDto).toList();
+    public List<ResponseOrderDto> findAll() {
+        return orderDao.findAll().stream().map(dtoConverter::convertEntityIntoDto).toList();
     }
 
     @Override

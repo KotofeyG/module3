@@ -1,14 +1,11 @@
 package com.epam.esm.gift_system.repository.dao;
 
-import com.epam.esm.gift_system.repository.model.Order;
 import com.epam.esm.gift_system.repository.model.User;
 
-import java.util.Optional;
+import java.util.List;
 
 public interface UserDao extends BaseDao<User> {
-    Optional<User> findByName(String name);
-
-    Optional<Order> findUserOrderById(Long userId, Long orderId);
+    List<User> findAllByNameList(List<String> nameList);
 
     boolean isUserNameFree(String name);
 

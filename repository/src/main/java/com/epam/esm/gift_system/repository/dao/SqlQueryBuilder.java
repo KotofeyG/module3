@@ -3,6 +3,7 @@ package com.epam.esm.gift_system.repository.dao;
 import com.epam.esm.gift_system.repository.model.GiftCertificate;
 import com.epam.esm.gift_system.repository.model.GiftCertificateAttribute;
 import com.epam.esm.gift_system.repository.model.Tag;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.persistence.criteria.CriteriaBuilder;
@@ -17,50 +18,48 @@ import java.util.Objects;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.ANY_TEXT;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.DEFAULT_SORT;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.DESCRIPTION;
-import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.EMPTY;
+import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.EMPTY_STRING;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.ID;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.NAME;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.TAG_LIST;
 
+@Component
 public class SqlQueryBuilder {
-    private final CriteriaBuilder builder;
+    private CriteriaBuilder builder;
 
-    public SqlQueryBuilder(CriteriaBuilder builder) {
+    public void setBuilder(CriteriaBuilder builder) {
         this.builder = builder;
     }
 
     public CriteriaQuery<GiftCertificate> buildCertificateQueryForSearchAndSort(GiftCertificateAttribute attribute) {
-        String tagName = Objects.nonNull(attribute.getTagName()) ? attribute.getTagName() : EMPTY;
-        String searchPart = Objects.nonNull(attribute.getSearchPart()) ? ANY_TEXT + attribute.getSearchPart() + ANY_TEXT : EMPTY;
-        String orderSort = Objects.nonNull(attribute.getOrderSort()) ? attribute.getOrderSort() : DEFAULT_SORT;
-        List<String> sortingFields = attribute.getSortingFields();
-
         CriteriaQuery<GiftCertificate> query = builder.createQuery(GiftCertificate.class);
         Root<GiftCertificate> root = query.from(GiftCertificate.class);
         query.select(root);
 
-        Predicate tagNamePredicate = buildPredicateByTagName(root, tagName);
-        Predicate searchPartPredicate = buildPredicateBySearchPart(root, searchPart);
+        Predicate tagNamePredicate = buildByTagName(root, attribute);
+        Predicate searchPartPredicate = buildBySearchPart(root, attribute);
         Predicate resultPredicate = builder.and(tagNamePredicate, searchPartPredicate);
         query.where(resultPredicate);
 
-        List<Order> orderList = buildOrderListByFields(root, sortingFields, orderSort);
+        List<Order> orderList = buildOrderListByFields(root, attribute);
         query.orderBy(orderList);
         return query;
     }
 
-    private Predicate buildPredicateByTagName(Root<GiftCertificate> root, String tagName) {
-        Predicate result = builder.conjunction();
-        if (!tagName.equals(EMPTY)) {
+    private Predicate buildByTagName(Root<GiftCertificate> root, GiftCertificateAttribute attribute) {
+        List<String> tagNameList = attribute.getTagNameList();
+        return CollectionUtils.isEmpty(tagNameList)
+                ? builder.conjunction()
+                : tagNameList.stream().map(tagName -> {
             Join<GiftCertificate, Tag> tagJoin = root.join(TAG_LIST);
-            result = builder.equal(tagJoin.get(NAME), tagName);
-        }
-        return result;
+            return builder.equal(tagJoin.get(NAME), tagName);
+        }).reduce(builder.conjunction(), (and, next) -> builder.and(and, next));
     }
 
-    private Predicate buildPredicateBySearchPart(Root<GiftCertificate> root, String searchPart) {
+    private Predicate buildBySearchPart(Root<GiftCertificate> root, GiftCertificateAttribute attribute) {
+        String searchPart = Objects.nonNull(attribute.getSearchPart()) ? ANY_TEXT + attribute.getSearchPart() + ANY_TEXT : EMPTY_STRING;
         Predicate result = builder.conjunction();
-        if (!searchPart.equals(EMPTY)) {
+        if (!EMPTY_STRING.equals(searchPart)) {
             Predicate namePartPredicate = builder.like(root.get(NAME), searchPart);
             Predicate descriptionPartPredicate = builder.like(root.get(DESCRIPTION), searchPart);
             result = builder.or(namePartPredicate, descriptionPartPredicate);
@@ -68,7 +67,9 @@ public class SqlQueryBuilder {
         return result;
     }
 
-    private List<Order> buildOrderListByFields(Root<GiftCertificate> root, List<String> fieldList, String orderSort) {
+    private List<Order> buildOrderListByFields(Root<GiftCertificate> root, GiftCertificateAttribute attribute) {
+        String orderSort = Objects.nonNull(attribute.getOrderSort()) ? attribute.getOrderSort() : DEFAULT_SORT;
+        List<String> fieldList = attribute.getSortingFieldList();
         return CollectionUtils.isEmpty(fieldList)
                 ? List.of(buildOrderByField(root, ID, orderSort))
                 : fieldList.stream().map(field -> buildOrderByField(root, field, orderSort)).toList();

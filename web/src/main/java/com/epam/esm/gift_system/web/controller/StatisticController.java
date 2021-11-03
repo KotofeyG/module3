@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/statistics")
 public class StatisticController {
@@ -17,8 +19,8 @@ public class StatisticController {
         this.statisticsService = statisticsService;
     }
 
-    @GetMapping("/users/popular-tag")
-    public TagDto findMostPopularTag() {
+    @GetMapping("/popular-tag/rich-user")
+    public List<TagDto> findMostPopularTag() {
         return statisticsService.findMostPopularTag();
     }
 }

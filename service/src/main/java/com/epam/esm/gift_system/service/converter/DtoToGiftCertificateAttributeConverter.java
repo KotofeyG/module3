@@ -10,10 +10,10 @@ public class DtoToGiftCertificateAttributeConverter implements Converter<GiftCer
     @Override
     public GiftCertificateAttribute convert(GiftCertificateAttributeDto source) {
         return GiftCertificateAttribute.builder()
-                .tagName(source.getTagName())
+                .tagNameList(source.getTagNameList())
                 .searchPart(source.getSearchPart())
                 .orderSort(source.getOrderSort())
-                .sortingFields(source.getSortingFields())
+                .sortingFieldList(source.getSortingFieldList())
                 .build();
     }
 }

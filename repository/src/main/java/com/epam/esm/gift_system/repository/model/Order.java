@@ -16,6 +16,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.Table;
 import java.math.BigDecimal;
@@ -38,8 +39,9 @@ public class Order {
     private LocalDateTime orderDate;
     @Column(name = "order_cost", nullable = false, updatable = false)
     private BigDecimal cost;
-    @Column(name = "user_id", nullable = false, updatable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
     @ManyToMany(fetch = FetchType.EAGER
             , cascade = {CascadeType.MERGE, CascadeType.DETACH, CascadeType.PERSIST, CascadeType.REFRESH})
     @JoinTable(name = "orders_certificates"

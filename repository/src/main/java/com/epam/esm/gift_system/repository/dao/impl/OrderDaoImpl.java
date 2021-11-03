@@ -12,6 +12,8 @@ import javax.persistence.criteria.Root;
 import java.util.List;
 import java.util.Optional;
 
+import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.ID;
+
 @Repository
 public class OrderDaoImpl implements OrderDao {
     @PersistenceContext
@@ -44,6 +46,7 @@ public class OrderDaoImpl implements OrderDao {
         CriteriaQuery<Order> query = builder.createQuery(Order.class);
         Root<Order> root = query.from(Order.class);
         query.select(root);
+        query.orderBy(builder.asc(root.get(ID)));
         return entityManager.createQuery(query).getResultList();
     }
 

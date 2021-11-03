@@ -1,7 +1,6 @@
 package com.epam.esm.gift_system.repository.dao.impl;
 
 import com.epam.esm.gift_system.repository.dao.UserDao;
-import com.epam.esm.gift_system.repository.model.Order;
 import com.epam.esm.gift_system.repository.model.User;
 import org.springframework.stereotype.Repository;
 
@@ -16,7 +15,6 @@ import java.util.Optional;
 
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.ID;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.NAME;
-import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.USER_ID;
 import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.ZERO_ROWS_NUMBER;
 
 @Repository
@@ -47,12 +45,15 @@ public class UserDaoImpl implements UserDao {
     }
 
     @Override
-    public Optional<User> findByName(String name) {
+    public List<User> findAllByNameList(List<String> nameList) {
         CriteriaQuery<User> query = builder.createQuery(User.class);
         Root<User> root = query.from(User.class);
         query.select(root);
-        query.where(builder.equal(root.get(NAME), name));
-        return entityManager.createQuery(query).getResultList().stream().findAny();
+        List<Predicate> predicateList = nameList.stream().map(name -> builder.equal(root.get(NAME), name)).toList();
+        Predicate orPredicate = predicateList.stream().reduce(builder::or).orElse(builder.conjunction());
+        query.where(orPredicate);
+        query.orderBy(builder.asc(root.get(NAME)));
+        return entityManager.createQuery(query).getResultList();
     }
 
     @Override
@@ -60,18 +61,8 @@ public class UserDaoImpl implements UserDao {
         CriteriaQuery<User> query = builder.createQuery(User.class);
         Root<User> root = query.from(User.class);
         query.select(root);
+        query.orderBy(builder.asc(root.get(ID)));
         return entityManager.createQuery(query).getResultList();
-    }
-
-    @Override
-    public Optional<Order> findUserOrderById(Long userId, Long orderId) {
-        CriteriaQuery<Order> query = builder.createQuery(Order.class);
-        Root<Order> root = query.from(Order.class);
-        query.select(root);
-        Predicate predicate = builder.equal(root.get(USER_ID), userId);
-        predicate = builder.and(predicate, builder.equal(root.get(ID), orderId));
-        query.where(predicate);
-        return entityManager.createQuery(query).getResultList().stream().findAny();
     }
 
     @Override
