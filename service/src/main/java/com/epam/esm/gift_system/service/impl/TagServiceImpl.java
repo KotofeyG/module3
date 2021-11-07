@@ -5,6 +5,8 @@ import com.epam.esm.gift_system.repository.model.Tag;
 import com.epam.esm.gift_system.service.DtoConverterService;
 import com.epam.esm.gift_system.service.EntityConverterService;
 import com.epam.esm.gift_system.service.TagService;
+import com.epam.esm.gift_system.service.dto.CustomPage;
+import com.epam.esm.gift_system.service.dto.CustomPageable;
 import com.epam.esm.gift_system.service.dto.TagDto;
 import com.epam.esm.gift_system.service.exception.GiftSystemException;
 import com.epam.esm.gift_system.service.validator.EntityValidator;
@@ -13,8 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
+import static com.epam.esm.gift_system.service.exception.ErrorCode.INVALID_DATA_OF_PAGE;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_PAGE;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.TAG_INVALID_NAME;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_ENTITY;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.USED_ENTITY;
@@ -25,29 +28,29 @@ public class TagServiceImpl implements TagService {
     private final TagDao tagDao;
     private final EntityValidator validator;
     private final DtoConverterService dtoConverter;
-    private final EntityConverterService entityConverterService;
+    private final EntityConverterService entityConverter;
 
     @Autowired
     public TagServiceImpl(TagDao tagDao, EntityValidator validator, DtoConverterService dtoConverter
-            , EntityConverterService entityConverterService) {
+            , EntityConverterService entityConverter) {
         this.tagDao = tagDao;
         this.validator = validator;
         this.dtoConverter = dtoConverter;
-        this.entityConverterService = entityConverterService;
+        this.entityConverter = entityConverter;
     }
 
     @Override
     @Transactional
     public TagDto create(TagDto tagDto) {
-        return dtoConverter.convertEntityIntoDto(createTag(entityConverterService.convertDtoIntoEntity(tagDto)));
+        Tag created = createTag(entityConverter.convertDtoIntoEntity(tagDto));
+        return dtoConverter.convertEntityIntoDto(createTag(created));
     }
 
     @Override
     @Transactional
     public Tag createTag(Tag tag) {
         if (validator.isNameValid(tag.getName(), STRONG)) {
-            Optional<Tag> optionalTag = tagDao.findByName(tag.getName());
-            return optionalTag.orElseGet(() -> tagDao.create(tag));
+            return tagDao.findByName(tag.getName()).orElseGet(() -> tagDao.create(tag));
         }
         throw new GiftSystemException(TAG_INVALID_NAME);
     }
@@ -67,8 +70,18 @@ public class TagServiceImpl implements TagService {
     }
 
     @Override
-    public List<TagDto> findAll() {
-        return tagDao.findAll().stream().map(dtoConverter::convertEntityIntoDto).toList();
+    public CustomPage<TagDto> findAll(CustomPageable pageable) {
+        if (!validator.isPageDataValid(pageable)) {
+            throw new GiftSystemException(INVALID_DATA_OF_PAGE);
+        }
+        long totalTagNumber = tagDao.findEntityNumber();
+        if (!validator.isPageExists(pageable, totalTagNumber)) {
+            throw new GiftSystemException(NON_EXISTENT_PAGE);
+        }
+        int offset = calculateOffset(pageable);
+        List<TagDto> tagDtoList = tagDao.findAll(offset, pageable.getSize())
+                .stream().map(dtoConverter::convertEntityIntoDto).toList();
+        return new CustomPage<>(tagDtoList, pageable, totalTagNumber);
     }
 
     @Override

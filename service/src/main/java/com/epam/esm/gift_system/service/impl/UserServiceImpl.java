@@ -5,6 +5,8 @@ import com.epam.esm.gift_system.repository.model.User;
 import com.epam.esm.gift_system.service.DtoConverterService;
 import com.epam.esm.gift_system.service.EntityConverterService;
 import com.epam.esm.gift_system.service.UserService;
+import com.epam.esm.gift_system.service.dto.CustomPage;
+import com.epam.esm.gift_system.service.dto.CustomPageable;
 import com.epam.esm.gift_system.service.dto.ResponseOrderDto;
 import com.epam.esm.gift_system.service.dto.UserDto;
 import com.epam.esm.gift_system.service.exception.GiftSystemException;
@@ -14,9 +16,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
 
-import static com.epam.esm.gift_system.service.exception.ErrorCode.*;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.DUPLICATE_NAME;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.INVALID_DATA_OF_PAGE;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_ENTITY;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_PAGE;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.USED_ENTITY;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.USER_INVALID_NAME;
 import static com.epam.esm.gift_system.service.validator.EntityValidator.ValidationType.STRONG;
 
 @Service
@@ -64,35 +70,50 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserDto> findAllByNameList(List<String> nameList) {
-        checkNameList(nameList);
-        return Objects.nonNull(nameList)
-                ? userDao.findAllByNameList(nameList).stream().map(dtoConverter::convertEntityIntoDto).toList()
-                :findAll();
-    }
-
-    private void checkNameList(List<String> nameList) {
-        if (Objects.nonNull(nameList) && !nameList.stream().allMatch(name -> validator.isNameValid(name, STRONG))) {
+    public UserDto findByName(String name) {
+        if (!validator.isNameValid(name, STRONG)) {
             throw new GiftSystemException(USER_INVALID_NAME);
         }
+        return userDao.findByName(name).map(dtoConverter::convertEntityIntoDto)
+                .orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY));
     }
 
     @Override
-    public List<UserDto> findAll() {
-        return userDao.findAll().stream().map(dtoConverter::convertEntityIntoDto).toList();
+    public CustomPage<UserDto> findAll(CustomPageable pageable) {
+        if (!validator.isPageDataValid(pageable)) {
+            throw new GiftSystemException(INVALID_DATA_OF_PAGE);
+        }
+        long totalUserNumber = userDao.findEntityNumber();
+        if (!validator.isPageExists(pageable, totalUserNumber)) {
+            throw new GiftSystemException(NON_EXISTENT_PAGE);
+        }
+        int offset = calculateOffset(pageable);
+        List<UserDto> userDtoList = userDao.findAll(offset, pageable.getSize())
+                .stream().map(dtoConverter::convertEntityIntoDto).toList();
+        return new CustomPage<>(userDtoList, pageable, totalUserNumber);
     }
 
     @Override
-    public List<ResponseOrderDto> findUserOrderList(Long id) {
+    public CustomPage<ResponseOrderDto> findUserOrderList(Long id, CustomPageable pageable) {
+        if (!validator.isPageDataValid(pageable)) {
+            throw new GiftSystemException(INVALID_DATA_OF_PAGE);
+        }
         User user = findUserById(id);
-        return user.getOrderList().stream().map(dtoConverter::convertEntityIntoDto).toList();
+        long totalOrderNumber = userDao.findUserOrdersNumber(user);
+        if (!validator.isPageExists(pageable, totalOrderNumber)) {
+            throw new GiftSystemException(NON_EXISTENT_PAGE);
+        }
+        int offset = calculateOffset(pageable);
+        List<ResponseOrderDto> orderDtoList = userDao.findUserOrders(user, offset, pageable.getSize())
+                .stream().map(dtoConverter::convertEntityIntoDto).toList();
+        return new CustomPage<>(orderDtoList, pageable, totalOrderNumber);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         User user = findUserById(id);
-        if (userDao.isUserHasOrders(id)) {
+        if (userDao.isUserHasOrders(user)) {
             throw new GiftSystemException(USED_ENTITY);
         }
         userDao.delete(user);

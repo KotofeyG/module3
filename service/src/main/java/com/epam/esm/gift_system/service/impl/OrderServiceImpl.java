@@ -8,6 +8,8 @@ import com.epam.esm.gift_system.service.DtoConverterService;
 import com.epam.esm.gift_system.service.GiftCertificateService;
 import com.epam.esm.gift_system.service.OrderService;
 import com.epam.esm.gift_system.service.UserService;
+import com.epam.esm.gift_system.service.dto.CustomPage;
+import com.epam.esm.gift_system.service.dto.CustomPageable;
 import com.epam.esm.gift_system.service.dto.ResponseOrderDto;
 import com.epam.esm.gift_system.service.dto.RequestOrderDto;
 import com.epam.esm.gift_system.service.exception.GiftSystemException;
@@ -19,7 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Objects;
 
-import static com.epam.esm.gift_system.service.exception.ErrorCode.*;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.INVALID_DATA_OF_PAGE;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_ENTITY;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_PAGE;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NULLABLE_OBJECT;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -37,6 +42,11 @@ public class OrderServiceImpl implements OrderService {
         this.userService = userService;
         this.validator = validator;
         this.dtoConverter = dtoConverter;
+    }
+
+    @Override
+    public ResponseOrderDto create(ResponseOrderDto orderDto) {
+        throw new UnsupportedOperationException("create method with OrderDto parameter isn't implemented in OrderServiceImpl class");
     }
 
     @Override
@@ -60,11 +70,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public ResponseOrderDto create(ResponseOrderDto orderDto) {
-        throw new UnsupportedOperationException("create method with OrderDto parameter isn't implemented in OrderServiceImpl class");
-    }
-
-    @Override
     public ResponseOrderDto update(Long id, ResponseOrderDto orderDto) {
         throw new UnsupportedOperationException("update method isn't implemented in OrderServiceImpl class");
     }
@@ -79,8 +84,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<ResponseOrderDto> findAll() {
-        return orderDao.findAll().stream().map(dtoConverter::convertEntityIntoDto).toList();
+    public CustomPage<ResponseOrderDto> findAll(CustomPageable pageable) {
+        if (!validator.isPageDataValid(pageable)) {
+            throw new GiftSystemException(INVALID_DATA_OF_PAGE);
+        }
+        long totalOrderNumber = orderDao.findEntityNumber();
+        if (!validator.isPageExists(pageable, totalOrderNumber)) {
+            throw new GiftSystemException(NON_EXISTENT_PAGE);
+        }
+        int offset = calculateOffset(pageable);
+        List<ResponseOrderDto> orderDtoList = orderDao.findAll(offset, pageable.getSize())
+                .stream().map(dtoConverter::convertEntityIntoDto).toList();
+        return new CustomPage<>(orderDtoList, pageable, totalOrderNumber);
     }
 
     @Override

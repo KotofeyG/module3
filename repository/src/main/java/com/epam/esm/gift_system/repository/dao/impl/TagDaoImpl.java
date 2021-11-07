@@ -2,6 +2,7 @@ package com.epam.esm.gift_system.repository.dao.impl;
 
 import com.epam.esm.gift_system.repository.dao.TagDao;
 import com.epam.esm.gift_system.repository.model.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
@@ -24,11 +25,12 @@ import static com.epam.esm.gift_system.repository.dao.constant.SqlQuery.COUNT_TA
 public class TagDaoImpl implements TagDao {
     @PersistenceContext
     private final EntityManager entityManager;
-    private final CriteriaBuilder builder;
+    private final CriteriaBuilder criteriaBuilder;
 
+    @Autowired
     public TagDaoImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.builder = entityManager.getCriteriaBuilder();
+        this.criteriaBuilder = entityManager.getCriteriaBuilder();
     }
 
     @Override
@@ -49,25 +51,33 @@ public class TagDaoImpl implements TagDao {
 
     @Override
     public Optional<Tag> findByName(String name) {
-        CriteriaQuery<Tag> query = builder.createQuery(Tag.class);
+        CriteriaQuery<Tag> query = criteriaBuilder.createQuery(Tag.class);
         Root<Tag> root = query.from(Tag.class);
         query.select(root);
-        query.where(builder.equal(root.get(NAME), name));
+        query.where(criteriaBuilder.equal(root.get(NAME), name));
         return entityManager.createQuery(query).getResultList().stream().findAny();
     }
 
     @Override
-    public List<Tag> findAll() {
-        CriteriaQuery<Tag> query = builder.createQuery(Tag.class);
+    public List<Tag> findAll(Integer offset, Integer limit) {
+        CriteriaQuery<Tag> query = criteriaBuilder.createQuery(Tag.class);
         Root<Tag> root = query.from(Tag.class);
         query.select(root);
-        query.orderBy(builder.asc(root.get(ID)));
-        return entityManager.createQuery(query).getResultList();
+        query.orderBy(criteriaBuilder.asc(root.get(ID)));
+        return entityManager.createQuery(query).setFirstResult(offset).setMaxResults(limit).getResultList();
     }
 
     @Override
     public void delete(Tag tag) {
         entityManager.remove(tag);
+    }
+
+    @Override
+    public Long findEntityNumber() {
+        CriteriaQuery<Long> query = criteriaBuilder.createQuery(Long.class);
+        Root<Tag> root = query.from(Tag.class);
+        query.select(criteriaBuilder.count(root));
+        return entityManager.createQuery(query).getSingleResult();
     }
 
     @Override

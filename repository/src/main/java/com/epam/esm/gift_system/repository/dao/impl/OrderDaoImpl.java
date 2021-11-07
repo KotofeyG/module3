@@ -2,6 +2,7 @@ package com.epam.esm.gift_system.repository.dao.impl;
 
 import com.epam.esm.gift_system.repository.dao.OrderDao;
 import com.epam.esm.gift_system.repository.model.Order;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
@@ -18,11 +19,12 @@ import static com.epam.esm.gift_system.repository.dao.constant.GeneralConstant.I
 public class OrderDaoImpl implements OrderDao {
     @PersistenceContext
     private final EntityManager entityManager;
-    private final CriteriaBuilder builder;
+    private final CriteriaBuilder criteriaBuilder;
 
+    @Autowired
     public OrderDaoImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.builder = entityManager.getCriteriaBuilder();
+        this.criteriaBuilder = entityManager.getCriteriaBuilder();
     }
 
     @Override
@@ -42,16 +44,24 @@ public class OrderDaoImpl implements OrderDao {
     }
 
     @Override
-    public List<Order> findAll() {
-        CriteriaQuery<Order> query = builder.createQuery(Order.class);
+    public List<Order> findAll(Integer offset, Integer limit) {
+        CriteriaQuery<Order> query = criteriaBuilder.createQuery(Order.class);
         Root<Order> root = query.from(Order.class);
         query.select(root);
-        query.orderBy(builder.asc(root.get(ID)));
-        return entityManager.createQuery(query).getResultList();
+        query.orderBy(criteriaBuilder.asc(root.get(ID)));
+        return entityManager.createQuery(query).setFirstResult(offset).setMaxResults(limit).getResultList();
     }
 
     @Override
     public void delete(Order entity) {
         entityManager.remove(entity);
+    }
+
+    @Override
+    public Long findEntityNumber() {
+        CriteriaQuery<Long> query = criteriaBuilder.createQuery(Long.class);
+        Root<Order> root = query.from(Order.class);
+        query.select(criteriaBuilder.count(root));
+        return entityManager.createQuery(query).getSingleResult();
     }
 }

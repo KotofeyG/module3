@@ -10,7 +10,9 @@ public interface BaseDao<T> {
 
     Optional<T> findById(Long id);
 
-    List<T> findAll();
+    List<T> findAll(Integer offset, Integer limit);
 
     void delete(T entity);
+
+    Long findEntityNumber();
 }

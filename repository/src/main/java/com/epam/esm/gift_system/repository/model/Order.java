@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -39,11 +38,10 @@ public class Order {
     private LocalDateTime orderDate;
     @Column(name = "order_cost", nullable = false, updatable = false)
     private BigDecimal cost;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-    @ManyToMany(fetch = FetchType.EAGER
-            , cascade = {CascadeType.MERGE, CascadeType.DETACH, CascadeType.PERSIST, CascadeType.REFRESH})
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "orders_certificates"
             , joinColumns = @JoinColumn(name = "order_id", referencedColumnName = "id")
             , inverseJoinColumns = @JoinColumn(name = "gift_certificate_id", referencedColumnName = "id"))

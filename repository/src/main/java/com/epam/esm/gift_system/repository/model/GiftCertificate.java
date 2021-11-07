@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -47,8 +46,7 @@ public class GiftCertificate {
     private LocalDateTime createDate;
     @Column(name = "last_update_date", nullable = false)
     private LocalDateTime lastUpdateDate;
-    @ManyToMany(fetch = FetchType.EAGER
-            , cascade = {CascadeType.MERGE, CascadeType.DETACH, CascadeType.PERSIST, CascadeType.REFRESH})
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "tags_certificates"
             , joinColumns = @JoinColumn(name = "gift_certificate_id", referencedColumnName = "id")
             , inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName = "id"))

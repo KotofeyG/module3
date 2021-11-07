@@ -8,6 +8,8 @@ import com.epam.esm.gift_system.service.DtoConverterService;
 import com.epam.esm.gift_system.service.EntityConverterService;
 import com.epam.esm.gift_system.service.GiftCertificateService;
 import com.epam.esm.gift_system.service.TagService;
+import com.epam.esm.gift_system.service.dto.CustomPage;
+import com.epam.esm.gift_system.service.dto.CustomPageable;
 import com.epam.esm.gift_system.service.dto.GiftCertificateAttributeDto;
 import com.epam.esm.gift_system.service.dto.GiftCertificateDto;
 import com.epam.esm.gift_system.service.dto.TagDto;
@@ -25,11 +27,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.epam.esm.gift_system.service.constant.GeneralConstant.ZERO;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_DESCRIPTION;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_DURATION;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_NAME;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.CERTIFICATE_INVALID_PRICE;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.INVALID_ATTRIBUTE_LIST;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.INVALID_DATA_OF_PAGE;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_PAGE;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.TAG_INVALID_NAME;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_ENTITY;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.NULLABLE_OBJECT;
@@ -60,12 +65,12 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
     public GiftCertificateDto create(GiftCertificateDto certificateDto) {
         checkCertificateValidation(certificateDto, STRONG);
         GiftCertificate certificate = entityConverter.convertDtoIntoEntity(certificateDto);
-        setTagListInCertificateDto(certificate);
+        setTagListInCertificate(certificate);
         certificateDao.create(certificate);
         return dtoConverter.convertEntityIntoDto(certificate);
     }
 
-    private void setTagListInCertificateDto(GiftCertificate certificate) {
+    private void setTagListInCertificate(GiftCertificate certificate) {
         Set<Tag> tagList = certificate.getTagList();
         tagList = tagList.stream().map(tagService::createTag).collect(Collectors.toCollection(LinkedHashSet::new));
         certificate.setTagList(tagList);
@@ -118,7 +123,7 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
         if (Objects.nonNull(price) && !persistedCertificate.getPrice().equals(price)) {
             persistedCertificate.setPrice(price);
         }
-        if (duration != 0 && persistedCertificate.getDuration() != duration) {
+        if (duration != ZERO && persistedCertificate.getDuration() != duration) {
             persistedCertificate.setDuration(duration);
         }
     }
@@ -128,8 +133,8 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
             return;
         }
         Set<Tag> updatedTagSet = tagDtoList.stream()
-                .map(tagService::create)
                 .map(entityConverter::convertDtoIntoEntity)
+                .map(tagService::createTag)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         persistedCertificate.setTagList(updatedTagSet);
     }
@@ -145,18 +150,31 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
     }
 
     @Override
-    public List<GiftCertificateDto> findAll() {
+    public CustomPage<GiftCertificateDto> findAll(CustomPageable pageable) {
         throw new UnsupportedOperationException("findAll method isn't implemented in GiftCertificateServiceImpl class");
     }
 
     @Override
-    public List<GiftCertificateDto> findByAttributes(GiftCertificateAttributeDto attributeDto) {
-        if (validator.isAttributeListValid(attributeDto)) {
-            GiftCertificateAttribute attribute = entityConverter.convertDtoIntoEntity(attributeDto);
-            List<GiftCertificate> certificateList = certificateDao.findByAttributes(attribute);
-            return certificateList.stream().map(dtoConverter::convertEntityIntoDto).toList();
+    public CustomPage<GiftCertificateDto> findByAttributes(GiftCertificateAttributeDto attributeDto, CustomPageable pageable) {
+        checkSearchParams(attributeDto, pageable);
+        GiftCertificateAttribute attribute = entityConverter.convertDtoIntoEntity(attributeDto);
+        long totalCertificateNumber = certificateDao.findEntityNumber(attribute);
+        if (!validator.isPageExists(pageable, totalCertificateNumber)) {
+            throw new GiftSystemException(NON_EXISTENT_PAGE);
         }
-        throw new GiftSystemException(INVALID_ATTRIBUTE_LIST);
+        int offset = calculateOffset(pageable);
+        List<GiftCertificate> certificateList = certificateDao.findByAttributes(attribute, offset, pageable.getSize());
+        List<GiftCertificateDto> certificateDtoList = certificateList.stream().map(dtoConverter::convertEntityIntoDto).toList();
+        return new CustomPage<>(certificateDtoList, pageable, totalCertificateNumber);
+    }
+
+    private void checkSearchParams(GiftCertificateAttributeDto attributeDto, CustomPageable pageable) {
+        if (!validator.isAttributeDtoValid(attributeDto)) {
+            throw new GiftSystemException(INVALID_ATTRIBUTE_LIST);
+        }
+        if (!validator.isPageDataValid(pageable)) {
+            throw new GiftSystemException(INVALID_DATA_OF_PAGE);
+        }
     }
 
     @Override

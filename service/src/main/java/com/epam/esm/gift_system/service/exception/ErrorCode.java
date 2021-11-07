@@ -16,6 +16,9 @@ public class ErrorCode {
 
     public static final int USER_INVALID_NAME = 40040;
 
+    public static final int INVALID_DATA_OF_PAGE = 40050;
+    public static final int NON_EXISTENT_PAGE = 40051;
+
     public static final int NON_EXISTENT_ENTITY = 40410;
 
     public static final int USED_ENTITY = 40910;

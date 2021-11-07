@@ -2,6 +2,7 @@ package com.epam.esm.gift_system.repository.dao.impl;
 
 import com.epam.esm.gift_system.repository.dao.StatisticsDao;
 import com.epam.esm.gift_system.repository.model.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.persistence.EntityManager;
@@ -17,6 +18,7 @@ public class StatisticsDaoImpl implements StatisticsDao {
     @PersistenceContext
     private final EntityManager entityManager;
 
+    @Autowired
     public StatisticsDaoImpl(EntityManager entityManager) {
         this.entityManager = entityManager;
     }

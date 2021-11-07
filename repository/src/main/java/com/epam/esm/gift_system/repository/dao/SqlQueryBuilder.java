@@ -35,15 +35,26 @@ public class SqlQueryBuilder {
         CriteriaQuery<GiftCertificate> query = builder.createQuery(GiftCertificate.class);
         Root<GiftCertificate> root = query.from(GiftCertificate.class);
         query.select(root);
-
-        Predicate tagNamePredicate = buildByTagName(root, attribute);
-        Predicate searchPartPredicate = buildBySearchPart(root, attribute);
-        Predicate resultPredicate = builder.and(tagNamePredicate, searchPartPredicate);
+        Predicate resultPredicate = buildQueryCondition(root, attribute);
         query.where(resultPredicate);
-
         List<Order> orderList = buildOrderListByFields(root, attribute);
         query.orderBy(orderList);
         return query;
+    }
+
+    public CriteriaQuery<Long> buildQueryForCountCertificates(GiftCertificateAttribute attribute) {
+        CriteriaQuery<Long> query = builder.createQuery(Long.class);
+        Root<GiftCertificate> root = query.from(GiftCertificate.class);
+        query.select(builder.count(root));
+        Predicate resultPredicate = buildQueryCondition(root, attribute);
+        query.where(resultPredicate);
+        return query;
+    }
+
+    private Predicate buildQueryCondition(Root<GiftCertificate> root, GiftCertificateAttribute attribute) {
+        Predicate tagNamePredicate = buildByTagName(root, attribute);
+        Predicate searchPartPredicate = buildBySearchPart(root, attribute);
+        return builder.and(tagNamePredicate, searchPartPredicate);
     }
 
     private Predicate buildByTagName(Root<GiftCertificate> root, GiftCertificateAttribute attribute) {
@@ -53,7 +64,7 @@ public class SqlQueryBuilder {
                 : tagNameList.stream().map(tagName -> {
             Join<GiftCertificate, Tag> tagJoin = root.join(TAG_LIST);
             return builder.equal(tagJoin.get(NAME), tagName);
-        }).reduce(builder.conjunction(), (and, next) -> builder.and(and, next));
+        }).reduce(builder.conjunction(), builder::and);
     }
 
     private Predicate buildBySearchPart(Root<GiftCertificate> root, GiftCertificateAttribute attribute) {
