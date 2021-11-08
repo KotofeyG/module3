@@ -9,7 +9,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 
-import java.util.List;
+import java.util.Optional;
 
 import static com.epam.esm.gift_system.repository.dao.constant.SqlQuery.FIND_MOST_POPULAR_TAG_OF_RICHEST_USER;
 
@@ -24,8 +24,8 @@ public class StatisticsDaoImpl implements StatisticsDao {
     }
 
     @Override
-    public List<Tag> findMostPopularTag() {
+    public Optional<Tag> findMostPopularTag() {
         Query query = entityManager.createNativeQuery(FIND_MOST_POPULAR_TAG_OF_RICHEST_USER, Tag.class);
-        return query.getResultList();
+        return query.getResultList().stream().findAny();
     }
 }

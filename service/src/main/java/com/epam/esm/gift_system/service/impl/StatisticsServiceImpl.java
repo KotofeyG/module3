@@ -4,10 +4,11 @@ import com.epam.esm.gift_system.repository.dao.StatisticsDao;
 import com.epam.esm.gift_system.service.DtoConverterService;
 import com.epam.esm.gift_system.service.StatisticsService;
 import com.epam.esm.gift_system.service.dto.TagDto;
+import com.epam.esm.gift_system.service.exception.GiftSystemException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.NON_EXISTENT_ENTITY;
 
 @Service
 public class StatisticsServiceImpl implements StatisticsService {
@@ -21,7 +22,9 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public List<TagDto> findMostPopularTag() {
-        return statisticsDao.findMostPopularTag().stream().map(dtoConverter::convertEntityIntoDto).toList();
+    public TagDto findMostPopularTag() {
+        return statisticsDao.findMostPopularTag()
+                .map(dtoConverter::convertEntityIntoDto)
+                .orElseThrow(() -> new GiftSystemException(NON_EXISTENT_ENTITY));
     }
 }

@@ -2,8 +2,8 @@ package com.epam.esm.gift_system.repository.dao;
 
 import com.epam.esm.gift_system.repository.model.Tag;
 
-import java.util.List;
+import java.util.Optional;
 
 public interface StatisticsDao {
-    List<Tag> findMostPopularTag();
+    Optional<Tag> findMostPopularTag();
 }

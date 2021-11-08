@@ -15,6 +15,8 @@ public class SpringBootRestApplication implements WebMvcConfigurer {
         SpringApplication.run(SpringBootRestApplication.class);
     }
 
+
+
     @Bean
     public ResourceBundleMessageSource getResourceBundleMessageSource() {
         ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
