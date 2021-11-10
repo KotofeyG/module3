@@ -24,6 +24,8 @@ public class ErrorCode {
     public static final int USED_ENTITY = 40910;
     public static final int DUPLICATE_NAME = 40911;
 
+    public static final int DATA_BASE_ERROR = 50300;
+
     private ErrorCode() {
     }
 }

@@ -12,10 +12,8 @@ public class SpringBootRestApplication implements WebMvcConfigurer {
     private static final String ENCODING = "UTF-8";
 
     public static void main(String[] args) {
-        SpringApplication.run(SpringBootRestApplication.class);
+        SpringApplication.run(SpringBootRestApplication.class, args);
     }
-
-
 
     @Bean
     public ResourceBundleMessageSource getResourceBundleMessageSource() {

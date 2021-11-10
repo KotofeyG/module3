@@ -1,6 +1,7 @@
 package com.epam.esm.gift_system.web.exception;
 
 import com.epam.esm.gift_system.service.exception.GiftSystemException;
+import org.hibernate.exception.JDBCConnectionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static com.epam.esm.gift_system.service.exception.ErrorCode.BAD_REQUEST;
+import static com.epam.esm.gift_system.service.exception.ErrorCode.DATA_BASE_ERROR;
 import static com.epam.esm.gift_system.service.exception.ErrorCode.UNREADABLE_MESSAGE;
 
 @RestControllerAdvice
@@ -46,6 +48,11 @@ public class ControllerAdvisor {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleHttpMessageNotReadableException(Locale locale) {
         return new ResponseEntity<>(createResponse(UNREADABLE_MESSAGE, locale), getHttpStatusByCode(UNREADABLE_MESSAGE));
+    }
+
+    @ExceptionHandler(JDBCConnectionException.class)
+    public ResponseEntity<Object> handleJDBCConnectionException(Locale locale) {
+        return new ResponseEntity<>(createResponse(DATA_BASE_ERROR, locale), getHttpStatusByCode(DATA_BASE_ERROR));
     }
 
     private Map<String, Object> createResponse(int errorCode, Locale locale) {
